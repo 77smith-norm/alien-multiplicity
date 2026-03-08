@@ -111,8 +111,8 @@ constexpr std::array<AlienTierConfig, 3> kAlienTierConfigs{{
 }};
 
 constexpr std::array<Platform, 2> kPlatforms{{
-    {80.0f, 380.0f, 180.0f, 18.0f},
-    {540.0f, 300.0f, 180.0f, 18.0f},
+    {80.0f, 450.0f, 180.0f, 18.0f},
+    {540.0f, 380.0f, 180.0f, 18.0f},
 }};
 
 constexpr std::array<WeaponConfig, 3> kWeaponConfigs{{
