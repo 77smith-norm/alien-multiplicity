@@ -67,9 +67,9 @@ constexpr std::uint32_t kColorRed = 0xFF5A5A;
 constexpr std::uint32_t kColorBlue = 0x7EC8FF;
 
 constexpr std::array<AlienTierConfig, 3> kAlienTierConfigs{{
-    {AlienTier::t1, 64, 64, 3, 80.0f, 50},
-    {AlienTier::t2, 40, 40, 5, 55.0f, 25},
-    {AlienTier::t3, 24, 24, 8, 35.0f, 100},
+    {AlienTier::t1, 64, 64, 1, 80.0f, 50},
+    {AlienTier::t2, 40, 40, 2, 55.0f, 25},
+    {AlienTier::t3, 24, 24, 3, 35.0f, 100},
 }};
 
 inline constexpr const AlienTierConfig& alienConfig(AlienTier tier) {
