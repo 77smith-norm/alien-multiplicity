@@ -25,10 +25,12 @@ void Player::resetForNewGame() {
     fireAnimationTimer_ = 0.0f;
     hitAnimationTimer_ = 0.0f;
     runAnimationTimer_ = 0.0f;
+    invincibleTimer_ = 0.0f;
     lives_ = kPlayerStartingLives;
     facingRight_ = true;
     onGround_ = true;
     moving_ = false;
+    dead_ = false;
     dbDeleteSprite(SPR_PLAYER);
 }
 
@@ -36,6 +38,11 @@ void Player::update(float dt) {
     fireCooldown_ = std::max(0.0f, fireCooldown_ - dt);
     fireAnimationTimer_ = std::max(0.0f, fireAnimationTimer_ - dt);
     hitAnimationTimer_ = std::max(0.0f, hitAnimationTimer_ - dt);
+    invincibleTimer_ = std::max(0.0f, invincibleTimer_ - dt);
+
+    if (dead_) {
+        return;
+    }
 
     int moveAxis = 0;
     if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
@@ -76,6 +83,10 @@ void Player::update(float dt) {
 }
 
 bool Player::tryFire(const Vector2& aimPoint, Vector2& origin, Vector2& direction) {
+    if (dead_) {
+        return false;
+    }
+
     const bool firePressed = IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     if (!firePressed || fireCooldown_ > 0.0f) {
         return false;
@@ -90,6 +101,25 @@ bool Player::tryFire(const Vector2& aimPoint, Vector2& origin, Vector2& directio
 
     fireCooldown_ = kLaserCooldownSeconds;
     fireAnimationTimer_ = kLaserVisualSeconds;
+    return true;
+}
+
+bool Player::takeHit() {
+    if (dead_ || invincibleTimer_ > 0.0f) {
+        return !dead_;
+    }
+
+    --lives_;
+    hitAnimationTimer_ = 0.3f;
+    fireAnimationTimer_ = 0.0f;
+
+    if (lives_ <= 0) {
+        dead_ = true;
+        return false;
+    }
+
+    respawnAtCenter();
+    invincibleTimer_ = kPlayerRespawnInvincibilitySeconds;
     return true;
 }
 
@@ -134,7 +164,18 @@ int Player::lives() const {
     return lives_;
 }
 
+bool Player::isInvincible() const {
+    return invincibleTimer_ > 0.0f;
+}
+
+bool Player::isDead() const {
+    return dead_;
+}
+
 int Player::currentImageId() const {
+    if (dead_) {
+        return imageForDirection(facingRight_, IMG_SOLDIER_DEATH_RIGHT, IMG_SOLDIER_DEATH_LEFT);
+    }
     if (hitAnimationTimer_ > 0.0f) {
         return imageForDirection(facingRight_, IMG_SOLDIER_HIT_RIGHT, IMG_SOLDIER_HIT_LEFT);
     }
@@ -162,7 +203,13 @@ int Player::currentImageId() const {
 }
 
 bool Player::shouldBlinkHide() const {
-    return false;
+    return invincibleTimer_ > 0.0f && std::fmod(invincibleTimer_ * 20.0f, 2.0f) < 1.0f;
+}
+
+void Player::respawnAtCenter() {
+    position_ = {kPlayerSpawnX, kPlayerSpawnY};
+    velocityY_ = 0.0f;
+    onGround_ = true;
 }
 
 }  // namespace am

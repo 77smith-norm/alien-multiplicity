@@ -19,6 +19,8 @@ add_executable(alien_multiplicity
     src/Player.cpp
     src/Alien.cpp
     src/Laser.cpp
+    src/HUD.cpp
+    src/Wave.cpp
 )
 target_link_libraries(alien_multiplicity PRIVATE litegdk_entrypoint raylib)
 target_include_directories(alien_multiplicity PRIVATE
