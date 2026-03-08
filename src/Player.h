@@ -18,6 +18,7 @@ public:
 
     bool tryFire(const Vector2& aimPoint, Vector2& origin, std::vector<Vector2>& directions);
     bool takeHit();
+    void gainLife();
     void setWeapon(WeaponType weapon);
 
     Rectangle bounds() const;

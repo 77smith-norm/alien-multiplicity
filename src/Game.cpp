@@ -162,7 +162,9 @@ void Game::clearWorld() {
     laser_.reset();
     hud_.hideHearts();
     weaponCrate_ = {};
+    healthCrate_ = {};
     weaponCrateTimer_ = kWeaponCrateSpawnSeconds;
+    healthCrateTimer_ = kHealthCrateSpawnSeconds;
     weaponAnnouncementTimer_ = 0.0f;
     announcedWeapon_ = WeaponType::laser;
     nextAlienSpriteId_ = SPR_ALIEN_START;
@@ -210,7 +212,7 @@ float Game::distanceToScreenEdge(const Vector2& origin, const Vector2& direction
     return std::clamp(nearest, 4.0f, kLaserRange);
 }
 
-Vector2 Game::randomPickupPosition(float width, float height) const {
+Vector2 Game::randomPickupPosition(float width, float height, std::optional<float> avoidX) const {
     const std::array<PickupSurface, 3> surfaces{{
         {0.0f, static_cast<float>(kScreenWidth) - width, kGroundTop},
         {kPlatforms[0].x, kPlatforms[0].x + kPlatforms[0].width - width, kPlatforms[0].top()},
@@ -218,16 +220,35 @@ Vector2 Game::randomPickupPosition(float width, float height) const {
     }};
 
     const PickupSurface& surface = surfaces[static_cast<std::size_t>(GetRandomValue(0, static_cast<int>(surfaces.size()) - 1))];
-    const int minX = static_cast<int>(std::round(surface.minX));
-    const int maxX = static_cast<int>(std::round(std::max(surface.minX, surface.maxX)));
-    const float x = static_cast<float>(GetRandomValue(minX, maxX));
+    const float minX = surface.minX;
+    const float maxX = std::max(surface.minX, surface.maxX);
+    float x = static_cast<float>(GetRandomValue(static_cast<int>(std::round(minX)), static_cast<int>(std::round(maxX))));
+
+    if (avoidX.has_value() && std::fabs(x - *avoidX) < kPickupOverlapPadding) {
+        if ((*avoidX + kPickupOverlapPadding) <= maxX) {
+            x = *avoidX + kPickupOverlapPadding;
+        } else if ((*avoidX - kPickupOverlapPadding) >= minX) {
+            x = *avoidX - kPickupOverlapPadding;
+        } else {
+            x = std::clamp(x, minX, maxX);
+        }
+    }
+
     return Vector2{x, surface.top - height};
 }
 
 void Game::spawnWeaponCrate() {
-    const Vector2 position = randomPickupPosition(kPickupCrateSize, kPickupCrateSize);
+    const std::optional<float> avoidX = healthCrate_.active ? std::optional<float>{healthCrate_.bounds.x} : std::nullopt;
+    const Vector2 position = randomPickupPosition(kPickupCrateSize, kPickupCrateSize, avoidX);
     weaponCrate_ = WeaponCrate{squareBounds(position, kPickupCrateSize), nextWeaponType(player_.currentWeapon()), true};
     weaponCrateTimer_ = kWeaponCrateSpawnSeconds;
+}
+
+void Game::spawnHealthCrate() {
+    const std::optional<float> avoidX = weaponCrate_.active ? std::optional<float>{weaponCrate_.bounds.x} : std::nullopt;
+    const Vector2 position = randomPickupPosition(kPickupCrateSize, kPickupCrateSize, avoidX);
+    healthCrate_ = HealthCrate{squareBounds(position, kPickupCrateSize), true};
+    healthCrateTimer_ = kHealthCrateSpawnSeconds;
 }
 
 void Game::updateWeaponCrate(float dt) {
@@ -250,6 +271,22 @@ void Game::updateWeaponCrate(float dt) {
     }
 }
 
+void Game::updateHealthCrate(float dt) {
+    if (!healthCrate_.active) {
+        healthCrateTimer_ = std::max(0.0f, healthCrateTimer_ - dt);
+        if (healthCrateTimer_ <= 0.0f) {
+            spawnHealthCrate();
+        }
+        return;
+    }
+
+    if (CheckCollisionRecs(player_.bounds(), healthCrate_.bounds)) {
+        player_.gainLife();
+        healthCrate_.active = false;
+        healthCrateTimer_ = kHealthCrateSpawnSeconds;
+    }
+}
+
 void Game::updateTitle() {
     if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
         startNewGame();
@@ -264,6 +301,7 @@ void Game::updatePlaying(float dt) {
 
     player_.update(dt);
     updateWeaponCrate(dt);
+    updateHealthCrate(dt);
     laser_.update(dt);
 
     for (auto& alien : aliens_) {
@@ -438,6 +476,29 @@ void Game::drawWeaponCrate() const {
     dbText(labelX, labelY, label.c_str());
 }
 
+void Game::drawHealthCrate() const {
+    if (!healthCrate_.active) {
+        return;
+    }
+
+    DrawRectangle(static_cast<int>(healthCrate_.bounds.x),
+                  static_cast<int>(healthCrate_.bounds.y),
+                  static_cast<int>(healthCrate_.bounds.width),
+                  static_cast<int>(healthCrate_.bounds.height),
+                  colorFromRgb(kColorHealthCrate));
+    DrawRectangleLinesEx(healthCrate_.bounds, 2.0f, colorFromRgb(kColorWhite));
+
+    const char* label = "+1";
+    const int labelWidth = MeasureText(label, kTextSize);
+    const int labelX = std::clamp(
+        static_cast<int>(std::round(healthCrate_.bounds.x + ((healthCrate_.bounds.width - static_cast<float>(labelWidth)) * 0.5f))),
+        0,
+        kScreenWidth - labelWidth);
+    const int labelY = std::max(4, static_cast<int>(std::round(healthCrate_.bounds.y - kTextSize - 4.0f)));
+    dbInk(kColorWhite, 0);
+    dbText(labelX, labelY, label);
+}
+
 void Game::drawWorld() const {
     for (const auto& effect : effects_) {
         dbSprite(effect.spriteId,
@@ -451,6 +512,7 @@ void Game::drawWorld() const {
     }
 
     drawWeaponCrate();
+    drawHealthCrate();
     player_.draw();
     laser_.draw();
 }

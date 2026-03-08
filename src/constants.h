@@ -77,8 +77,10 @@ constexpr float kSpreadShotCooldownSeconds = 0.25f;
 constexpr float kRapidFireCooldownSeconds = 0.07f;
 constexpr float kSpreadShotAngleDegrees = 20.0f;
 constexpr float kWeaponCrateSpawnSeconds = 8.0f;
+constexpr float kHealthCrateSpawnSeconds = 15.0f;
 constexpr float kWeaponPickupAnnouncementSeconds = 2.0f;
 constexpr float kPickupCrateSize = 24.0f;
+constexpr float kPickupOverlapPadding = 50.0f;
 constexpr int kMaxWeaponBeams = 3;
 
 constexpr float kAlienBobAmplitude = 40.0f;
@@ -100,6 +102,7 @@ constexpr std::uint32_t kColorRed = 0xFF5A5A;
 constexpr std::uint32_t kColorBlue = 0x7EC8FF;
 constexpr std::uint32_t kColorPlatform = 0x2A4A5A;
 constexpr std::uint32_t kColorPlatformHighlight = 0x4C7A89;
+constexpr std::uint32_t kColorHealthCrate = 0xFF5A8A;
 
 constexpr std::array<AlienTierConfig, 3> kAlienTierConfigs{{
     {AlienTier::t1, 64, 64, 1, 80.0f, 50},

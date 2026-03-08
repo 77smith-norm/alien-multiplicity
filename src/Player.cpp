@@ -246,6 +246,12 @@ bool Player::isDead() const {
     return dead_;
 }
 
+void Player::gainLife() {
+    if (lives_ < kPlayerStartingLives) {
+        ++lives_;
+    }
+}
+
 void Player::setWeapon(WeaponType weapon) {
     currentWeapon_ = weapon;
 }
