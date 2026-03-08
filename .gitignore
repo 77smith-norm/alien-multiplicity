@@ -1,0 +1,9 @@
+build/
+build-wasm/
+build-debug/
+build-release/
+*.o
+*.a
+*.out
+.DS_Store
+
