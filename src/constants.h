@@ -24,6 +24,7 @@ constexpr int kScreenWidth = 800;
 constexpr int kScreenHeight = 600;
 constexpr int kScreenDepth = 32;
 constexpr int kTargetFps = 60;
+constexpr int kTextSize = 20;
 
 constexpr float kGroundY = 540.0f;
 constexpr float kGroundHeight = 60.0f;
@@ -36,6 +37,8 @@ constexpr float kPlayerJumpVelocity = 550.0f;
 constexpr float kGravity = 1200.0f;
 constexpr int kPlayerStartingLives = 3;
 constexpr float kPlayerRespawnInvincibilitySeconds = 1.5f;
+constexpr float kPlayerSpawnX = (kScreenWidth - kPlayerWidth) * 0.5f;
+constexpr float kPlayerSpawnY = kGroundTop - kPlayerHeight;
 
 constexpr float kLaserCooldownSeconds = 0.15f;
 constexpr float kLaserVisualSeconds = 0.08f;
@@ -43,6 +46,7 @@ constexpr float kLaserRange = static_cast<float>(kScreenWidth);
 constexpr int kLaserDamage = 1;
 constexpr float kLaserPushbackSpeed = 120.0f;
 constexpr int kLaserHitScore = 10;
+constexpr float kBeamBaseLength = 256.0f;
 
 constexpr float kAlienBobAmplitude = 40.0f;
 constexpr float kAlienBobPeriodSeconds = 2.0f;
@@ -67,6 +71,28 @@ constexpr std::array<AlienTierConfig, 3> kAlienTierConfigs{{
     {AlienTier::t2, 40, 40, 5, 55.0f, 25},
     {AlienTier::t3, 24, 24, 8, 35.0f, 100},
 }};
+
+inline constexpr const AlienTierConfig& alienConfig(AlienTier tier) {
+    switch (tier) {
+    case AlienTier::t1:
+        return kAlienTierConfigs[0];
+    case AlienTier::t2:
+        return kAlienTierConfigs[1];
+    case AlienTier::t3:
+    default:
+        return kAlienTierConfigs[2];
+    }
+}
+
+inline constexpr AlienTier nextAlienTier(AlienTier tier) {
+    switch (tier) {
+    case AlienTier::t1:
+        return AlienTier::t2;
+    case AlienTier::t2:
+    default:
+        return AlienTier::t3;
+    }
+}
 
 enum ImageId {
     IMG_GROUND = 1,

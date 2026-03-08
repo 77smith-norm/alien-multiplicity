@@ -15,9 +15,16 @@ FetchContent_MakeAvailable(litegdk)
 
 add_executable(alien_multiplicity
     src/main.cpp
+    src/Game.cpp
+    src/Player.cpp
+    src/Alien.cpp
+    src/Laser.cpp
 )
-target_link_libraries(alien_multiplicity PRIVATE litegdk_entrypoint)
-target_include_directories(alien_multiplicity PRIVATE src)
+target_link_libraries(alien_multiplicity PRIVATE litegdk_entrypoint raylib)
+target_include_directories(alien_multiplicity PRIVATE
+    src
+    ${litegdk_SOURCE_DIR}/src
+)
 
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 
