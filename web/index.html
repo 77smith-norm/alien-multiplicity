@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alien Multiplicity</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07101b;
+      --panel: rgba(10, 16, 27, 0.9);
+      --amber: #ffe260;
+      --cyan: #8ddcff;
+      --ink: #f5f3ea;
+      --muted: #91a4bf;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(141, 220, 255, 0.14), transparent 34%),
+        radial-gradient(circle at 85% 18%, rgba(255, 226, 96, 0.14), transparent 24%),
+        linear-gradient(180deg, #0a1422 0%, var(--bg) 62%, #03070c 100%);
+    }
+
+    main {
+      width: min(920px, 100%);
+      padding: 28px;
+      border-radius: 28px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 226, 96, 0.18);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.96;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 24px;
+    }
+
+    .card {
+      flex: 1 1 280px;
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .launch {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 220px;
+      padding: 16px 26px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 700;
+      color: #09111d;
+      background: linear-gradient(135deg, var(--amber), var(--cyan));
+    }
+
+    strong {
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p style="margin:0; letter-spacing:0.24em; text-transform:uppercase; color:var(--amber); font-size:0.82rem;">Browser Build</p>
+    <h1>Alien Multiplicity</h1>
+    <p>The full LiteGDK build runs in your browser. Shoot each beholder down the chain from mega to mini, and survive the crowd when every clean hit makes more enemies.</p>
+
+    <div class="row">
+      <div class="card">
+        <p><strong>Controls</strong><br>A/D or arrows move, W or Up jumps, mouse aims, Space or click fires.</p>
+        <p><strong>Tip</strong><br>Fast kills build combo score. Random hits on survivors break the chain.</p>
+      </div>
+
+      <div class="card" style="text-align:center;">
+        <a class="launch" href="alien_multiplicity.html">Launch the browser build</a>
+        <p style="margin-top:16px;">If audio is locked, click once inside the launcher page to start the runtime.</p>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  native-build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install tooling
+        run: python3 -m pip install --upgrade pip pillow cmake ninja
+
+      - name: Generate sprite frames
+        run: python3 tools/slice_sprites.py
+
+      - name: Configure debug build
+        run: cmake --preset debug
+
+      - name: Build debug target
+        run: cmake --build --preset debug

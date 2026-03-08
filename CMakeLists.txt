@@ -29,6 +29,7 @@ target_include_directories(alien_multiplicity PRIVATE
 )
 
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
+configure_file(${CMAKE_SOURCE_DIR}/web/index.html ${CMAKE_BINARY_DIR}/index.html COPYONLY)
 
 if(EMSCRIPTEN)
     set_target_properties(alien_multiplicity PROPERTIES SUFFIX ".html")

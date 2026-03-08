@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alien Multiplicity</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b13;
+      --panel: rgba(9, 14, 24, 0.9);
+      --panel-border: rgba(255, 226, 96, 0.18);
+      --ink: #f7f4e8;
+      --muted: #8ea0ba;
+      --amber: #ffe260;
+      --cyan: #8ddcff;
+      --red: #ff7575;
+      --shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(141, 220, 255, 0.12), transparent 34%),
+        radial-gradient(circle at 80% 20%, rgba(255, 226, 96, 0.12), transparent 26%),
+        linear-gradient(180deg, #0b1020 0%, var(--bg) 56%, #030507 100%);
+    }
+
+    .page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 18px;
+    }
+
+    .masthead {
+      display: grid;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .masthead p {
+      margin: 0;
+      color: var(--amber);
+      font-size: 0.82rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    .masthead h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4.1rem);
+      line-height: 0.96;
+    }
+
+    .masthead span {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .panel {
+      padding: 20px;
+      border-radius: 24px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px);
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .progress {
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      margin-bottom: 18px;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--cyan), var(--amber));
+      transition: width 160ms ease;
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      min-height: 320px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(180deg, rgba(19, 26, 47, 0.95), rgba(5, 8, 14, 0.98));
+      display: grid;
+      place-items: center;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      outline: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      gap: 12px;
+      text-align: center;
+      background: rgba(5, 8, 14, 0.86);
+      padding: 24px;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay button {
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 24px;
+      font: inherit;
+      font-weight: 700;
+      color: #09111d;
+      background: linear-gradient(135deg, var(--amber), var(--cyan));
+      cursor: pointer;
+    }
+
+    .overlay p {
+      margin: 0;
+      max-width: 36rem;
+      color: var(--muted);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .footer strong {
+      color: var(--ink);
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 14px;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="shell">
+      <header class="masthead">
+        <p>Retro Arcade</p>
+        <h1>Alien Multiplicity</h1>
+        <span>One soldier, one arena, and every good shot makes the problem worse.</span>
+      </header>
+
+      <section class="panel">
+        <div class="status-row">
+          <div id="status">Preparing runtime...</div>
+          <div id="status-detail">Downloading WebAssembly and sprite assets.</div>
+        </div>
+        <div class="progress">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <div class="stage">
+          <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+          <div id="start-overlay" class="overlay">
+            <button id="start-button" type="button">Launch the Arena</button>
+            <p>Browsers require a click before LiteGDK can unlock audio and enter the main loop.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="footer">
+        <div><strong>Controls:</strong> A/D or arrows move, W or Up jumps, mouse aims, Space or click fires.</div>
+        <div><strong>Objective:</strong> Split the beholders down to vapor before they crowd the screen.</div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const statusElement = document.getElementById("status");
+    const detailElement = document.getElementById("status-detail");
+    const progressBar = document.getElementById("progress-bar");
+    const overlay = document.getElementById("start-overlay");
+    const startButton = document.getElementById("start-button");
+    let totalDependencies = 0;
+
+    window.__litegdkAudioReady = false;
+
+    function setStatus(text, detail) {
+      if (text) {
+        statusElement.textContent = text;
+      }
+      if (detail) {
+        detailElement.textContent = detail;
+      }
+    }
+
+    var Module = {
+      canvas: (() => document.getElementById("canvas"))(),
+      preRun: [function() {
+        const gate = "litegdk-user-gesture";
+        addRunDependency(gate);
+        Module.litegdkStart = function() {
+          if (Module.__litegdkStarted) {
+            return;
+          }
+
+          Module.__litegdkStarted = true;
+          window.__litegdkAudioReady = true;
+          overlay.classList.add("hidden");
+          setStatus("Entering the arena...", "The game loop is starting.");
+          removeRunDependency(gate);
+          Module.canvas.focus();
+        };
+        setStatus("Ready to launch", "Click the button to unlock audio and begin.");
+      }],
+      setStatus: function(text) {
+        if (!text) {
+          return;
+        }
+        setStatus(text, "Loading browser support files.");
+      },
+      monitorRunDependencies: function(left) {
+        totalDependencies = Math.max(totalDependencies, left);
+        const completed = totalDependencies - left;
+        const percent = totalDependencies === 0 ? 100 : Math.round((completed / totalDependencies) * 100);
+        progressBar.style.width = percent + "%";
+
+        if (left > 0 && !Module.__litegdkStarted) {
+          setStatus("Preparing runtime...", "Downloading assets and waiting for click.");
+        } else if (left === 0) {
+          progressBar.style.width = "100%";
+          setStatus("Running", "Alien Multiplicity is live in the browser.");
+        }
+      },
+      onAbort: function(reason) {
+        setStatus("Startup failed", String(reason || "See browser console for details."));
+      }
+    };
+
+    startButton.addEventListener("click", function() {
+      if (typeof Module.litegdkStart === "function") {
+        Module.litegdkStart();
+      }
+    });
+  </script>
+  {{{ SCRIPT }}}
+</body>
+</html>
