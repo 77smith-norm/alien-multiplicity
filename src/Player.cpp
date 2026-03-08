@@ -12,6 +12,31 @@ namespace {
 int imageForDirection(bool facingRight, int rightImage, int leftImage) {
     return facingRight ? rightImage : leftImage;
 }
+
+bool overlapsPlatformHorizontally(float playerX, const Platform& platform) {
+    const float playerLeft = playerX;
+    const float playerRight = playerX + kPlayerWidth;
+    const float platformLeft = platform.x;
+    const float platformRight = platform.x + platform.width;
+    return playerRight > platformLeft && playerLeft < platformRight;
+}
+
+bool hasSupport(const Vector2& position) {
+    constexpr float kLandingEpsilon = 0.5f;
+    const float playerBottom = position.y + kPlayerHeight;
+    if (std::fabs(playerBottom - kGroundTop) <= kLandingEpsilon) {
+        return true;
+    }
+
+    for (const Platform& platform : kPlatforms) {
+        if (std::fabs(playerBottom - platform.top()) <= kLandingEpsilon &&
+            overlapsPlatformHorizontally(position.x, platform)) {
+            return true;
+        }
+    }
+
+    return false;
+}
 }
 
 Player::Player() {
@@ -62,14 +87,42 @@ void Player::update(float dt) {
     position_.x += static_cast<float>(moveAxis) * kPlayerMoveSpeed * dt;
     position_.x = Clamp(position_.x, 0.0f, static_cast<float>(kScreenWidth) - kPlayerWidth);
 
+    if (onGround_ && !hasSupport(position_)) {
+        onGround_ = false;
+    }
+
     if (onGround_ && (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))) {
         velocityY_ = -kPlayerJumpVelocity;
         onGround_ = false;
     }
 
     if (!onGround_ || std::fabs(velocityY_) > 0.01f) {
+        const float previousBottom = position_.y + kPlayerHeight;
         velocityY_ += kGravity * dt;
         position_.y += velocityY_ * dt;
+
+        if (velocityY_ > 0.0f) {
+            const float currentBottom = position_.y + kPlayerHeight;
+            float landingTop = kScreenHeight + kGroundHeight;
+
+            if (previousBottom < kGroundTop && currentBottom >= kGroundTop) {
+                landingTop = kGroundTop;
+            }
+
+            for (const Platform& platform : kPlatforms) {
+                if (previousBottom < platform.top() && currentBottom >= platform.top() &&
+                    overlapsPlatformHorizontally(position_.x, platform) && platform.top() < landingTop) {
+                    landingTop = platform.top();
+                }
+            }
+
+            if (landingTop <= kGroundTop) {
+                position_.y = landingTop - kPlayerHeight;
+                velocityY_ = 0.0f;
+                onGround_ = true;
+            }
+        }
+
         if (position_.y >= kPlayerSpawnY) {
             position_.y = kPlayerSpawnY;
             velocityY_ = 0.0f;

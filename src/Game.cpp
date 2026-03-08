@@ -12,6 +12,15 @@ namespace {
 void loadFrame(const char* path, int imageId) {
     dbLoadImage(path, imageId);
 }
+
+Color colorFromRgb(std::uint32_t value) {
+    return Color{
+        static_cast<unsigned char>((value >> 16) & 0xFF),
+        static_cast<unsigned char>((value >> 8) & 0xFF),
+        static_cast<unsigned char>(value & 0xFF),
+        255,
+    };
+}
 }
 
 Game::Game() {
@@ -302,6 +311,19 @@ void Game::updateGameOver() {
 
 void Game::drawGround() const {
     dbSprite(SPR_GROUND, 0, static_cast<int>(kGroundTop), IMG_GROUND);
+
+    for (const Platform& platform : kPlatforms) {
+        DrawRectangle(static_cast<int>(platform.x),
+                      static_cast<int>(platform.y),
+                      static_cast<int>(platform.width),
+                      static_cast<int>(platform.height),
+                      colorFromRgb(kColorPlatform));
+        DrawRectangle(static_cast<int>(platform.x),
+                      static_cast<int>(platform.y),
+                      static_cast<int>(platform.width),
+                      3,
+                      colorFromRgb(kColorPlatformHighlight));
+    }
 }
 
 void Game::drawWorld() const {

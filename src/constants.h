@@ -3,7 +3,19 @@
 #include <array>
 #include <cstdint>
 
+#include "raylib.h"
+
 namespace am {
+
+struct Platform {
+    float x;
+    float y;
+    float width;
+    float height;
+
+    Rectangle rect() const { return Rectangle{x, y, width, height}; }
+    float top() const { return y; }
+};
 
 enum class AlienTier {
     t1,
@@ -65,11 +77,18 @@ constexpr std::uint32_t kColorYellow = 0xFFE260;
 constexpr std::uint32_t kColorGreen = 0x77FFAA;
 constexpr std::uint32_t kColorRed = 0xFF5A5A;
 constexpr std::uint32_t kColorBlue = 0x7EC8FF;
+constexpr std::uint32_t kColorPlatform = 0x2A4A5A;
+constexpr std::uint32_t kColorPlatformHighlight = 0x4C7A89;
 
 constexpr std::array<AlienTierConfig, 3> kAlienTierConfigs{{
     {AlienTier::t1, 64, 64, 1, 80.0f, 50},
     {AlienTier::t2, 40, 40, 2, 55.0f, 25},
     {AlienTier::t3, 24, 24, 3, 35.0f, 100},
+}};
+
+constexpr std::array<Platform, 2> kPlatforms{{
+    {80.0f, 380.0f, 180.0f, 18.0f},
+    {540.0f, 300.0f, 180.0f, 18.0f},
 }};
 
 inline constexpr const AlienTierConfig& alienConfig(AlienTier tier) {
