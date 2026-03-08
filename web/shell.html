@@ -33,6 +33,10 @@
         linear-gradient(180deg, #0b1020 0%, var(--bg) 56%, #030507 100%);
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     .page {
       min-height: 100vh;
       display: grid;
@@ -109,9 +113,12 @@
 
     .stage {
       position: relative;
+      width: 100%;
+      max-width: 800px;
+      aspect-ratio: 4 / 3;
+      margin: 0 auto;
       overflow: hidden;
       border-radius: 18px;
-      min-height: 320px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background:
         linear-gradient(180deg, rgba(19, 26, 47, 0.95), rgba(5, 8, 14, 0.98));
@@ -121,8 +128,11 @@
 
     canvas {
       display: block;
-      max-width: 100%;
+      width: 100%;
+      max-width: 800px;
+      height: auto;
       outline: none;
+      image-rendering: pixelated;
     }
 
     .overlay {
@@ -134,10 +144,6 @@
       text-align: center;
       background: rgba(5, 8, 14, 0.86);
       padding: 24px;
-    }
-
-    .overlay.hidden {
-      display: none;
     }
 
     .overlay button {
@@ -155,6 +161,63 @@
       margin: 0;
       max-width: 36rem;
       color: var(--muted);
+    }
+
+    .gamepad {
+      width: min(100%, 800px);
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 28px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(30, 34, 44, 0.92);
+      backdrop-filter: blur(12px);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .gp-left,
+    .gp-right {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .gp-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      background: rgba(60, 65, 80, 0.9);
+      color: #d0d8e8;
+      font-size: 1.4rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 80ms, transform 80ms;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .gp-btn:active,
+    .gp-btn.pressed {
+      background: rgba(100, 110, 140, 0.95);
+      transform: scale(0.93);
+    }
+
+    .gp-btn.action {
+      background: rgba(45, 55, 90, 0.92);
+      border-color: rgba(141, 220, 255, 0.35);
+      color: #8ddcff;
+    }
+
+    .gp-btn.action:active,
+    .gp-btn.action.pressed {
+      background: rgba(80, 100, 160, 0.95);
     }
 
     .footer {
@@ -177,6 +240,23 @@
 
       .panel {
         padding: 14px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .gamepad {
+        padding: 14px 18px;
+      }
+
+      .gp-left,
+      .gp-right {
+        gap: 10px;
+      }
+
+      .gp-btn {
+        width: 56px;
+        height: 56px;
+        font-size: 1.25rem;
       }
     }
   </style>
@@ -207,9 +287,21 @@
         </div>
       </section>
 
+      <div id="gamepad" class="gamepad hidden">
+        <div class="gp-left">
+          <button class="gp-btn dpad" id="btn-left" aria-label="Left">◀</button>
+          <button class="gp-btn dpad" id="btn-right" aria-label="Right">▶</button>
+        </div>
+        <div class="gp-right">
+          <button class="gp-btn action" id="btn-a" aria-label="Jump">A</button>
+          <button class="gp-btn action" id="btn-b" aria-label="Fire">B</button>
+        </div>
+      </div>
+
       <section class="footer">
-        <div><strong>Controls:</strong> A/D or arrows move, W or Up jumps, mouse aims, Space or click fires.</div>
-        <div><strong>Objective:</strong> Split the beholders down to vapor before they crowd the screen.</div>
+        <div id="keyboard-footer"><strong>Keyboard:</strong> A/D or ← → move &nbsp;|&nbsp; W or ↑ double-jumps &nbsp;|&nbsp; Space fires</div>
+        <div id="touch-footer" class="hidden"><strong>Mobile:</strong> ◀ ▶ move &nbsp;|&nbsp; A jumps (tap twice to double-jump) &nbsp;|&nbsp; B fires</div>
+        <div><strong>Goal:</strong> Split the beholders down to vapor before they crowd the screen.</div>
       </section>
     </section>
   </main>
@@ -220,6 +312,9 @@
     const progressBar = document.getElementById("progress-bar");
     const overlay = document.getElementById("start-overlay");
     const startButton = document.getElementById("start-button");
+    const keyboardFooter = document.getElementById("keyboard-footer");
+    const touchFooter = document.getElementById("touch-footer");
+    const isTouchDevice = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
     let totalDependencies = 0;
 
     window.__litegdkAudioReady = false;
@@ -232,6 +327,115 @@
         detailElement.textContent = detail;
       }
     }
+
+    function syncTouchUi() {
+      keyboardFooter.classList.toggle("hidden", isTouchDevice);
+      touchFooter.classList.toggle("hidden", !isTouchDevice);
+    }
+
+    function initGamepad() {
+      syncTouchUi();
+
+      if (!isTouchDevice) {
+        return;
+      }
+
+      const gamepad = document.getElementById("gamepad");
+      const canvas = document.getElementById("canvas");
+      const keyMap = {
+        "btn-left": { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37 },
+        "btn-right": { key: "ArrowRight", code: "ArrowRight", keyCode: 39 },
+        "btn-a": { key: "ArrowUp", code: "ArrowUp", keyCode: 38 },
+        "btn-b": { key: " ", code: "Space", keyCode: 32 },
+      };
+      const activeKeys = new Set();
+
+      function createKeyEvent(type, mapping) {
+        const event = new KeyboardEvent(type, {
+          key: mapping.key,
+          code: mapping.code,
+          bubbles: true,
+          cancelable: true,
+        });
+
+        Object.defineProperty(event, "keyCode", {
+          get() {
+            return mapping.keyCode;
+          },
+        });
+        Object.defineProperty(event, "which", {
+          get() {
+            return mapping.keyCode;
+          },
+        });
+
+        return event;
+      }
+
+      function fireKey(id, type) {
+        const mapping = keyMap[id];
+        if (!mapping) {
+          return;
+        }
+
+        canvas.focus();
+        canvas.dispatchEvent(createKeyEvent(type, mapping));
+      }
+
+      function releaseKey(id) {
+        const button = document.getElementById(id);
+        if (!button || !activeKeys.has(id)) {
+          return;
+        }
+
+        activeKeys.delete(id);
+        button.classList.remove("pressed");
+        fireKey(id, "keyup");
+      }
+
+      function releaseAllKeys() {
+        Array.from(activeKeys).forEach(releaseKey);
+      }
+
+      Object.keys(keyMap).forEach((id) => {
+        const button = document.getElementById(id);
+        if (!button) {
+          return;
+        }
+
+        button.addEventListener("touchstart", (event) => {
+          event.preventDefault();
+          if (activeKeys.has(id)) {
+            return;
+          }
+
+          activeKeys.add(id);
+          button.classList.add("pressed");
+          fireKey(id, "keydown");
+        }, { passive: false });
+
+        button.addEventListener("touchend", (event) => {
+          event.preventDefault();
+          releaseKey(id);
+        }, { passive: false });
+
+        button.addEventListener("touchcancel", (event) => {
+          event.preventDefault();
+          releaseKey(id);
+        }, { passive: false });
+      });
+
+      gamepad.classList.remove("hidden");
+      gamepad.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
+      window.addEventListener("blur", releaseAllKeys);
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          releaseAllKeys();
+        }
+      });
+    }
+
+    syncTouchUi();
 
     var Module = {
       canvas: (() => document.getElementById("canvas"))(),
@@ -281,6 +485,8 @@
         Module.litegdkStart();
       }
     });
+
+    window.addEventListener("load", initGamepad);
   </script>
   {{{ SCRIPT }}}
 </body>
