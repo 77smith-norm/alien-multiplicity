@@ -7,7 +7,13 @@ namespace am {
 
 class HUD {
 public:
-    void drawPlaying(int score, int wave, int lives, int comboMultiplier) const;
+    void drawPlaying(int score,
+                     int wave,
+                     int lives,
+                     int comboMultiplier,
+                     const char* weaponName,
+                     float weaponPickupTimer,
+                     const char* weaponPickupName) const;
     void drawWaveBanner(int wave) const;
     void drawTitle(int bestScore) const;
     void drawPaused() const;

@@ -32,6 +32,20 @@ struct AlienTierConfig {
     int killScore;
 };
 
+enum class WeaponType {
+    laser,
+    spread,
+    rapid,
+};
+
+struct WeaponConfig {
+    WeaponType type;
+    float cooldown;
+    int beamCount;
+    float spreadAngleDeg;
+    const char* name;
+};
+
 constexpr int kScreenWidth = 800;
 constexpr int kScreenHeight = 600;
 constexpr int kScreenDepth = 32;
@@ -59,6 +73,13 @@ constexpr int kLaserDamage = 1;
 constexpr float kLaserPushbackSpeed = 120.0f;
 constexpr int kLaserHitScore = 10;
 constexpr float kBeamBaseLength = 256.0f;
+constexpr float kSpreadShotCooldownSeconds = 0.25f;
+constexpr float kRapidFireCooldownSeconds = 0.07f;
+constexpr float kSpreadShotAngleDegrees = 20.0f;
+constexpr float kWeaponCrateSpawnSeconds = 8.0f;
+constexpr float kWeaponPickupAnnouncementSeconds = 2.0f;
+constexpr float kPickupCrateSize = 24.0f;
+constexpr int kMaxWeaponBeams = 3;
 
 constexpr float kAlienBobAmplitude = 40.0f;
 constexpr float kAlienBobPeriodSeconds = 2.0f;
@@ -91,6 +112,12 @@ constexpr std::array<Platform, 2> kPlatforms{{
     {540.0f, 300.0f, 180.0f, 18.0f},
 }};
 
+constexpr std::array<WeaponConfig, 3> kWeaponConfigs{{
+    {WeaponType::laser, kLaserCooldownSeconds, 1, 0.0f, "LASER"},
+    {WeaponType::spread, kSpreadShotCooldownSeconds, 3, kSpreadShotAngleDegrees, "SPREAD"},
+    {WeaponType::rapid, kRapidFireCooldownSeconds, 1, 0.0f, "RAPID"},
+}};
+
 inline constexpr const AlienTierConfig& alienConfig(AlienTier tier) {
     switch (tier) {
     case AlienTier::t1:
@@ -110,6 +137,30 @@ inline constexpr AlienTier nextAlienTier(AlienTier tier) {
     case AlienTier::t2:
     default:
         return AlienTier::t3;
+    }
+}
+
+inline constexpr const WeaponConfig& weaponConfig(WeaponType type) {
+    switch (type) {
+    case WeaponType::laser:
+        return kWeaponConfigs[0];
+    case WeaponType::spread:
+        return kWeaponConfigs[1];
+    case WeaponType::rapid:
+    default:
+        return kWeaponConfigs[2];
+    }
+}
+
+inline constexpr WeaponType nextWeaponType(WeaponType type) {
+    switch (type) {
+    case WeaponType::laser:
+        return WeaponType::spread;
+    case WeaponType::spread:
+        return WeaponType::rapid;
+    case WeaponType::rapid:
+    default:
+        return WeaponType::laser;
     }
 }
 
@@ -159,7 +210,7 @@ enum ImageId {
 enum SpriteId {
     SPR_GROUND = 1,
     SPR_PLAYER = 100,
-    SPR_PLAYER_BEAM = 101,
+    SPR_PLAYER_BEAM_START = 101,
     SPR_HUD_HEART0 = 110,
     SPR_HUD_HEART1 = 111,
     SPR_HUD_HEART2 = 112,

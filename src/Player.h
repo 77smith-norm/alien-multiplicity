@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+
+#include "constants.h"
 #include "raylib.h"
 
 namespace am {
@@ -13,14 +16,16 @@ public:
     void draw() const;
     void hide() const;
 
-    bool tryFire(const Vector2& aimPoint, Vector2& origin, Vector2& direction);
+    bool tryFire(const Vector2& aimPoint, Vector2& origin, std::vector<Vector2>& directions);
     bool takeHit();
+    void setWeapon(WeaponType weapon);
 
     Rectangle bounds() const;
     Vector2 center() const;
     Vector2 gunOrigin() const;
     bool facingRight() const;
     int lives() const;
+    WeaponType currentWeapon() const;
     bool isInvincible() const;
     bool isDead() const;
 
@@ -36,6 +41,7 @@ private:
     float hitAnimationTimer_{0.0f};
     float runAnimationTimer_{0.0f};
     float invincibleTimer_{0.0f};
+    WeaponType currentWeapon_{WeaponType::laser};
     int lives_{0};
     bool facingRight_{true};
     bool onGround_{true};

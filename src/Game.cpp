@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 
 #include "DarkGDK.h"
 #include "constants.h"
@@ -21,6 +22,17 @@ Color colorFromRgb(std::uint32_t value) {
         255,
     };
 }
+
+struct PickupSurface {
+    float minX;
+    float maxX;
+    float top;
+};
+
+Rectangle squareBounds(const Vector2& position, float size) {
+    return Rectangle{position.x, position.y, size, size};
+}
+
 }
 
 Game::Game() {
@@ -58,14 +70,26 @@ void Game::draw() {
         break;
     case GameState::playing:
         drawWorld();
-        hud_.drawPlaying(score_, wave_.currentWave(), player_.lives(), comboMultiplier_);
+        hud_.drawPlaying(score_,
+                         wave_.currentWave(),
+                         player_.lives(),
+                         comboMultiplier_,
+                         weaponConfig(player_.currentWeapon()).name,
+                         weaponAnnouncementTimer_,
+                         weaponConfig(announcedWeapon_).name);
         if (wave_.bannerVisible()) {
             hud_.drawWaveBanner(wave_.currentWave());
         }
         break;
     case GameState::paused:
         drawWorld();
-        hud_.drawPlaying(score_, wave_.currentWave(), player_.lives(), comboMultiplier_);
+        hud_.drawPlaying(score_,
+                         wave_.currentWave(),
+                         player_.lives(),
+                         comboMultiplier_,
+                         weaponConfig(player_.currentWeapon()).name,
+                         weaponAnnouncementTimer_,
+                         weaponConfig(announcedWeapon_).name);
         hud_.drawPaused();
         break;
     case GameState::gameOver:
@@ -137,6 +161,10 @@ void Game::clearWorld() {
     clearEffects();
     laser_.reset();
     hud_.hideHearts();
+    weaponCrate_ = {};
+    weaponCrateTimer_ = kWeaponCrateSpawnSeconds;
+    weaponAnnouncementTimer_ = 0.0f;
+    announcedWeapon_ = WeaponType::laser;
     nextAlienSpriteId_ = SPR_ALIEN_START;
     nextEffectSpriteId_ = SPR_EFFECT_START;
 }
@@ -182,6 +210,46 @@ float Game::distanceToScreenEdge(const Vector2& origin, const Vector2& direction
     return std::clamp(nearest, 4.0f, kLaserRange);
 }
 
+Vector2 Game::randomPickupPosition(float width, float height) const {
+    const std::array<PickupSurface, 3> surfaces{{
+        {0.0f, static_cast<float>(kScreenWidth) - width, kGroundTop},
+        {kPlatforms[0].x, kPlatforms[0].x + kPlatforms[0].width - width, kPlatforms[0].top()},
+        {kPlatforms[1].x, kPlatforms[1].x + kPlatforms[1].width - width, kPlatforms[1].top()},
+    }};
+
+    const PickupSurface& surface = surfaces[static_cast<std::size_t>(GetRandomValue(0, static_cast<int>(surfaces.size()) - 1))];
+    const int minX = static_cast<int>(std::round(surface.minX));
+    const int maxX = static_cast<int>(std::round(std::max(surface.minX, surface.maxX)));
+    const float x = static_cast<float>(GetRandomValue(minX, maxX));
+    return Vector2{x, surface.top - height};
+}
+
+void Game::spawnWeaponCrate() {
+    const Vector2 position = randomPickupPosition(kPickupCrateSize, kPickupCrateSize);
+    weaponCrate_ = WeaponCrate{squareBounds(position, kPickupCrateSize), nextWeaponType(player_.currentWeapon()), true};
+    weaponCrateTimer_ = kWeaponCrateSpawnSeconds;
+}
+
+void Game::updateWeaponCrate(float dt) {
+    weaponAnnouncementTimer_ = std::max(0.0f, weaponAnnouncementTimer_ - dt);
+
+    if (!weaponCrate_.active) {
+        weaponCrateTimer_ = std::max(0.0f, weaponCrateTimer_ - dt);
+        if (weaponCrateTimer_ <= 0.0f) {
+            spawnWeaponCrate();
+        }
+        return;
+    }
+
+    if (CheckCollisionRecs(player_.bounds(), weaponCrate_.bounds)) {
+        player_.setWeapon(weaponCrate_.weapon);
+        announcedWeapon_ = weaponCrate_.weapon;
+        weaponAnnouncementTimer_ = kWeaponPickupAnnouncementSeconds;
+        weaponCrate_.active = false;
+        weaponCrateTimer_ = kWeaponCrateSpawnSeconds;
+    }
+}
+
 void Game::updateTitle() {
     if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
         startNewGame();
@@ -195,6 +263,7 @@ void Game::updatePlaying(float dt) {
     }
 
     player_.update(dt);
+    updateWeaponCrate(dt);
     laser_.update(dt);
 
     for (auto& alien : aliens_) {
@@ -221,28 +290,41 @@ void Game::updatePlaying(float dt) {
     }
 
     Vector2 origin{};
-    Vector2 direction{};
+    std::vector<Vector2> shotDirections;
     const Vector2 aimPoint{static_cast<float>(GetMouseX()), static_cast<float>(GetMouseY())};
-    if (player_.tryFire(aimPoint, origin, direction)) {
-        float nearestDistance = distanceToScreenEdge(origin, direction);
-        int nearestIndex = -1;
+    if (player_.tryFire(aimPoint, origin, shotDirections)) {
+        std::vector<LaserBeam> beams;
+        std::vector<AlienSpawnRequest> pendingChildren;
+        beams.reserve(shotDirections.size());
 
-        for (std::size_t i = 0; i < aliens_.size(); ++i) {
-            float hitDistance = 0.0f;
-            if (aliens_[i].intersectRay(origin, direction, kLaserRange, hitDistance) && hitDistance < nearestDistance) {
-                nearestDistance = hitDistance;
-                nearestIndex = static_cast<int>(i);
+        bool killedAny = false;
+        bool hitWithoutKill = false;
+
+        for (const Vector2& direction : shotDirections) {
+            float nearestDistance = distanceToScreenEdge(origin, direction);
+            int nearestIndex = -1;
+
+            for (std::size_t i = 0; i < aliens_.size(); ++i) {
+                float hitDistance = 0.0f;
+                if (aliens_[i].intersectRay(origin, direction, kLaserRange, hitDistance) && hitDistance < nearestDistance) {
+                    nearestDistance = hitDistance;
+                    nearestIndex = static_cast<int>(i);
+                }
             }
-        }
 
-        laser_.fire(origin, direction, nearestDistance);
+            beams.push_back(LaserBeam{origin, direction, nearestDistance});
 
-        if (nearestIndex >= 0) {
-            score_ += kLaserHitScore;
+            if (nearestIndex < 0) {
+                continue;
+            }
+
             const Rectangle hitBounds = aliens_[nearestIndex].bounds();
             const int killedSpriteId = aliens_[nearestIndex].spriteId();
             AlienDamageResult damage = aliens_[nearestIndex].applyHit(direction);
+            score_ += damage.hitScore;
+
             if (damage.killed) {
+                killedAny = true;
                 const float now = static_cast<float>(GetTime());
                 comboMultiplier_ = ((now - lastKillTime_) <= kComboWindowSeconds) ? (comboMultiplier_ + 1) : 1;
                 lastKillTime_ = now;
@@ -257,15 +339,22 @@ void Game::updatePlaying(float dt) {
                     });
                 }
 
-                for (const AlienSpawnRequest& child : damage.children) {
-                    spawnAlien(child.tier, child.center, child.velocity);
-                }
-
+                pendingChildren.insert(pendingChildren.end(), damage.children.begin(), damage.children.end());
                 dbDeleteSprite(killedSpriteId);
                 aliens_.erase(aliens_.begin() + nearestIndex);
             } else {
-                comboMultiplier_ = 1;
+                hitWithoutKill = true;
             }
+        }
+
+        laser_.fire(beams);
+
+        for (const AlienSpawnRequest& child : pendingChildren) {
+            spawnAlien(child.tier, child.center, child.velocity);
+        }
+
+        if (!killedAny && hitWithoutKill) {
+            comboMultiplier_ = 1;
         }
     }
 
@@ -326,6 +415,29 @@ void Game::drawGround() const {
     }
 }
 
+void Game::drawWeaponCrate() const {
+    if (!weaponCrate_.active) {
+        return;
+    }
+
+    DrawRectangle(static_cast<int>(weaponCrate_.bounds.x),
+                  static_cast<int>(weaponCrate_.bounds.y),
+                  static_cast<int>(weaponCrate_.bounds.width),
+                  static_cast<int>(weaponCrate_.bounds.height),
+                  colorFromRgb(kColorYellow));
+    DrawRectangleLinesEx(weaponCrate_.bounds, 2.0f, colorFromRgb(kColorWhite));
+
+    const std::string label = weaponConfig(weaponCrate_.weapon).name;
+    const int labelWidth = MeasureText(label.c_str(), kTextSize);
+    const int labelX = std::clamp(
+        static_cast<int>(std::round(weaponCrate_.bounds.x + ((weaponCrate_.bounds.width - static_cast<float>(labelWidth)) * 0.5f))),
+        0,
+        kScreenWidth - labelWidth);
+    const int labelY = std::max(4, static_cast<int>(std::round(weaponCrate_.bounds.y - kTextSize - 4.0f)));
+    dbInk(kColorWhite, 0);
+    dbText(labelX, labelY, label.c_str());
+}
+
 void Game::drawWorld() const {
     for (const auto& effect : effects_) {
         dbSprite(effect.spriteId,
@@ -338,6 +450,7 @@ void Game::drawWorld() const {
         alien.draw();
     }
 
+    drawWeaponCrate();
     player_.draw();
     laser_.draw();
 }

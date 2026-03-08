@@ -13,6 +13,14 @@ int imageForDirection(bool facingRight, int rightImage, int leftImage) {
     return facingRight ? rightImage : leftImage;
 }
 
+Vector2 rotateVector(const Vector2& value, float angleDegrees) {
+    const float radians = angleDegrees * DEG2RAD;
+    return Vector2{
+        (value.x * std::cos(radians)) - (value.y * std::sin(radians)),
+        (value.x * std::sin(radians)) + (value.y * std::cos(radians)),
+    };
+}
+
 bool overlapsPlatformHorizontally(float playerX, const Platform& platform) {
     const float playerLeft = playerX;
     const float playerRight = playerX + kPlayerWidth;
@@ -51,6 +59,7 @@ void Player::resetForNewGame() {
     hitAnimationTimer_ = 0.0f;
     runAnimationTimer_ = 0.0f;
     invincibleTimer_ = 0.0f;
+    currentWeapon_ = WeaponType::laser;
     lives_ = kPlayerStartingLives;
     facingRight_ = true;
     onGround_ = true;
@@ -135,24 +144,32 @@ void Player::update(float dt) {
     }
 }
 
-bool Player::tryFire(const Vector2& aimPoint, Vector2& origin, Vector2& direction) {
+bool Player::tryFire(const Vector2& aimPoint, Vector2& origin, std::vector<Vector2>& directions) {
+    directions.clear();
     if (dead_) {
         return false;
     }
 
-    const bool firePressed = IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-    if (!firePressed || fireCooldown_ > 0.0f) {
+    const bool fireHeld = IsKeyDown(KEY_SPACE) || IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    if (!fireHeld || fireCooldown_ > 0.0f) {
         return false;
     }
 
     origin = gunOrigin();
-    direction = Vector2Subtract(aimPoint, origin);
+    Vector2 direction = Vector2Subtract(aimPoint, origin);
     if (Vector2LengthSqr(direction) < 1.0f) {
         direction = facingRight_ ? Vector2{1.0f, 0.0f} : Vector2{-1.0f, 0.0f};
     }
     direction = Vector2Normalize(direction);
 
-    fireCooldown_ = kLaserCooldownSeconds;
+    const WeaponConfig& config = weaponConfig(currentWeapon_);
+    directions.push_back(direction);
+    if (config.beamCount == 3) {
+        directions.push_back(Vector2Normalize(rotateVector(direction, -config.spreadAngleDeg)));
+        directions.push_back(Vector2Normalize(rotateVector(direction, config.spreadAngleDeg)));
+    }
+
+    fireCooldown_ = config.cooldown;
     fireAnimationTimer_ = kLaserVisualSeconds;
     return true;
 }
@@ -217,12 +234,20 @@ int Player::lives() const {
     return lives_;
 }
 
+WeaponType Player::currentWeapon() const {
+    return currentWeapon_;
+}
+
 bool Player::isInvincible() const {
     return invincibleTimer_ > 0.0f;
 }
 
 bool Player::isDead() const {
     return dead_;
+}
+
+void Player::setWeapon(WeaponType weapon) {
+    currentWeapon_ = weapon;
 }
 
 int Player::currentImageId() const {

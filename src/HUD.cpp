@@ -22,7 +22,13 @@ std::string waveLabel(int wave) {
 }
 }
 
-void HUD::drawPlaying(int score, int wave, int lives, int comboMultiplier) const {
+void HUD::drawPlaying(int score,
+                      int wave,
+                      int lives,
+                      int comboMultiplier,
+                      const char* weaponName,
+                      float weaponPickupTimer,
+                      const char* weaponPickupName) const {
     const std::string scoreText = scoreLabel(score);
     const std::string waveText = waveLabel(wave);
     const int waveX = (kScreenWidth - MeasureText(waveText.c_str(), kTextSize)) / 2;
@@ -47,6 +53,17 @@ void HUD::drawPlaying(int score, int wave, int lives, int comboMultiplier) const
         std::ostringstream combo;
         combo << "COMBO x" << comboMultiplier;
         drawCenteredText(44, combo.str(), kColorYellow);
+    }
+
+    std::string weaponText = "WEAPON: ";
+    weaponText += weaponName;
+    dbInk(kColorWhite, 0);
+    dbText(16, kScreenHeight - 36, weaponText.c_str());
+
+    if (weaponPickupTimer > 0.0f) {
+        std::string pickupText = "WEAPON: ";
+        pickupText += weaponPickupName;
+        drawCenteredText(kScreenHeight - 68, pickupText, kColorYellow);
     }
 }
 
