@@ -61,8 +61,10 @@ void Player::resetForNewGame() {
     invincibleTimer_ = 0.0f;
     currentWeapon_ = WeaponType::laser;
     lives_ = kPlayerStartingLives;
+    jumpCount_ = 0;
     facingRight_ = true;
     onGround_ = true;
+    jumpKeyWasDown_ = false;
     moving_ = false;
     dead_ = false;
     dbDeleteSprite(SPR_PLAYER);
@@ -100,9 +102,15 @@ void Player::update(float dt) {
         onGround_ = false;
     }
 
-    if (onGround_ && (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))) {
+    const bool jumpKeyDown = IsKeyDown(KEY_UP) || IsKeyDown(KEY_W);
+    const bool jumpKeyJustPressed = jumpKeyDown && !jumpKeyWasDown_;
+    jumpKeyWasDown_ = jumpKeyDown;
+
+    const bool canJump = onGround_ || jumpCount_ < 2;
+    if (canJump && jumpKeyJustPressed) {
         velocityY_ = -kPlayerJumpVelocity;
         onGround_ = false;
+        ++jumpCount_;
     }
 
     if (!onGround_ || std::fabs(velocityY_) > 0.01f) {
@@ -129,6 +137,7 @@ void Player::update(float dt) {
                 position_.y = landingTop - kPlayerHeight;
                 velocityY_ = 0.0f;
                 onGround_ = true;
+                jumpCount_ = 0;
             }
         }
 
@@ -136,6 +145,7 @@ void Player::update(float dt) {
             position_.y = kPlayerSpawnY;
             velocityY_ = 0.0f;
             onGround_ = true;
+            jumpCount_ = 0;
         }
     }
 
@@ -294,6 +304,7 @@ void Player::respawnAtCenter() {
     position_ = {kPlayerSpawnX, kPlayerSpawnY};
     velocityY_ = 0.0f;
     onGround_ = true;
+    jumpCount_ = 0;
 }
 
 }  // namespace am

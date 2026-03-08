@@ -44,8 +44,10 @@ private:
     float invincibleTimer_{0.0f};
     WeaponType currentWeapon_{WeaponType::laser};
     int lives_{0};
+    int jumpCount_{0};
     bool facingRight_{true};
     bool onGround_{true};
+    bool jumpKeyWasDown_{false};
     bool moving_{false};
     bool dead_{false};
 };
